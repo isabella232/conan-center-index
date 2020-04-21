@@ -11,7 +11,7 @@ class LibgdConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     homepage = "https://libgd.github.io"
     options = {"shared": [True, False], "fPIC": [True, False]}
-    default_options = {"shared": False}
+    default_options = {"shared": False, "fPIC": True}
     generators = "cmake"
     requires = "zlib/1.2.11"
 
