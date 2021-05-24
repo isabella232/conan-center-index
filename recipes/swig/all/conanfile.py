@@ -129,7 +129,11 @@ class SwigConan(ConanFile):
 
     @property
     def _swiglibdir(self):
-        return os.path.join(self.package_folder, "bin", "swiglib").replace("\\", "/")
+        if self.settings.os == 'Windows':
+            swiglib = 'Lib'
+        else:
+            swiglib = 'swiglib'
+        return os.path.join(self.package_folder, "bin", swiglib).replace("\\", "/")
 
     @property
     def _module_subfolder(self):
@@ -148,3 +152,4 @@ class SwigConan(ConanFile):
         bindir = os.path.join(self.package_folder, "bin")
         self.output.info("Appending PATH environment variable: {}".format(bindir))
         self.env_info.PATH.append(bindir)
+        self.env_info.SWIG_LIB = self._swiglibdir
