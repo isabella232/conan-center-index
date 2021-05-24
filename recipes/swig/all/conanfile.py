@@ -17,7 +17,7 @@ class SwigConan(ConanFile):
 
     @property
     def _source_subfolder(self):
-        return "source_subfolder"
+        return "."
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -37,8 +37,8 @@ class SwigConan(ConanFile):
         self.requires("pcre/8.41")
 
     def source(self):
-        tools.get(**self.conan_data["sources"][self.version])
-        os.rename("swig-rel-{}".format(self.version), self._source_subfolder)
+        git = tools.Git(folder=self._source_subfolder)
+        git.clone('git@octocat.dlogics.com:datalogics/swig.git', branch='master')
 
     @property
     def _user_info_build(self):
@@ -103,7 +103,7 @@ class SwigConan(ConanFile):
         return self._autotools
 
     def _patch_sources(self):
-        for patch in self.conan_data["patches"][self.version]:
+        for patch in self.conan_data["patches"].get(self.version, []):
             tools.patch(**patch)
 
     def build(self):
