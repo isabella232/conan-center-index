@@ -95,6 +95,10 @@ class SwigConan(ConanFile):
             # MSVC canonical names aren't understood
             host, build = False, False
 
+        # DL: Old versions of swig-ccache needed yodl2man to build, which isn't
+        # available. We don't need ccache anyway.
+        args.append("--disable-ccache")
+
         self._autotools.libs = []
         self._autotools.library_paths = []
 
