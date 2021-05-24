@@ -84,6 +84,7 @@ class SwigConan(ConanFile):
             "PCRE_CPPFLAGS={}".format(" ".join("-D{}".format(define) for define in deps_defines)),
             "--host={}".format(self.settings.arch),
             "--with-swiglibdir={}".format(self._swiglibdir),
+            "--disable-dependency-tracking",
         ]
 
         host, build = None, None
