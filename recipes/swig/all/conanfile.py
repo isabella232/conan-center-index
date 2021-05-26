@@ -11,13 +11,13 @@ class SwigConan(ConanFile):
     license = "GPL-3.0-or-later"
     topics = ("conan", "swig", "python", "java", "wrapper")
     exports_sources = "patches/**", "cmake/*"
-    settings = "os", "arch", "compiler", "build_type"
+    settings = "os", "arch", "compiler", "build_type", "os_build", "arch_build"
 
     _autotools = None
 
     @property
     def _source_subfolder(self):
-        return "source_subfolder"
+        return "."
 
     def configure(self):
         del self.settings.compiler.libcxx
@@ -37,8 +37,8 @@ class SwigConan(ConanFile):
         self.requires("pcre/8.41")
 
     def source(self):
-        tools.get(**self.conan_data["sources"][self.version])
-        os.rename("swig-rel-{}".format(self.version), self._source_subfolder)
+        git = tools.Git(folder=self._source_subfolder)
+        git.clone('git@octocat.dlogics.com:datalogics/swig.git', branch='master')
 
     @property
     def _user_info_build(self):
@@ -84,6 +84,7 @@ class SwigConan(ConanFile):
             "PCRE_CPPFLAGS={}".format(" ".join("-D{}".format(define) for define in deps_defines)),
             "--host={}".format(self.settings.arch),
             "--with-swiglibdir={}".format(self._swiglibdir),
+            "--disable-dependency-tracking",
         ]
 
         host, build = None, None
@@ -95,6 +96,10 @@ class SwigConan(ConanFile):
             # MSVC canonical names aren't understood
             host, build = False, False
 
+        # DL: Old versions of swig-ccache needed yodl2man to build, which isn't
+        # available. We don't need ccache anyway.
+        args.append("--disable-ccache")
+
         self._autotools.libs = []
         self._autotools.library_paths = []
 
@@ -103,7 +108,7 @@ class SwigConan(ConanFile):
         return self._autotools
 
     def _patch_sources(self):
-        for patch in self.conan_data["patches"][self.version]:
+        for patch in self.conan_data["patches"].get(self.version, []):
             tools.patch(**patch)
 
     def build(self):
@@ -124,7 +129,11 @@ class SwigConan(ConanFile):
 
     @property
     def _swiglibdir(self):
-        return os.path.join(self.package_folder, "bin", "swiglib").replace("\\", "/")
+        if self.settings.os == 'Windows':
+            swiglib = 'Lib'
+        else:
+            swiglib = 'swiglib'
+        return os.path.join(self.package_folder, "bin", swiglib).replace("\\", "/")
 
     @property
     def _module_subfolder(self):
@@ -143,3 +152,18 @@ class SwigConan(ConanFile):
         bindir = os.path.join(self.package_folder, "bin")
         self.output.info("Appending PATH environment variable: {}".format(bindir))
         self.env_info.PATH.append(bindir)
+        self.env_info.SWIG_LIB = self._swiglibdir
+
+    def package_id(self):
+        del self.info.settings.compiler
+        del self.info.settings.os_build
+        del self.info.settings.arch_build
+
+        # Doxygen doesn't make executable code. Any package that will run is ok to use.
+        # It's ok in general to use a release version of the tool that matches the
+        # build os and architecture.
+        compatible_pkg = self.info.clone()
+        compatible_pkg.settings.build_type = 'Release'
+        compatible_pkg.settings.arch = self.settings.arch_build
+        compatible_pkg.settings.os = self.settings.os_build
+        self.compatible_packages.append(compatible_pkg)
