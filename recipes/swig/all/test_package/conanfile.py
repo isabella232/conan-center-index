@@ -15,6 +15,9 @@ class TestPackageConan(ConanFile):
 
     @property
     def _can_build(self):
+        if self.deps_cpp_info['swig'].version < tools.Version('4.0.0'):
+            # SWIG is old and might not be able to build code for a modern Python (say, Python 3)
+            return False
         # FIXME: SWIG Python with Visual Studio Debug - unable to find Python library at link
         # FIXME: SWIG Python with Visual Studio - unable to load generated module in tests
         return self.settings.compiler != "Visual Studio"
